@@ -35,6 +35,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Value("${brevo.from}")
     private String brevoFrom;
 
+    @Value("${brevo.from-name}")
+    private String brevoFromName;
+
     public NotificationServiceImpl(
             NotificationLogRepository notificationLogRepository,
             JavaMailSender mailSender
@@ -260,7 +263,7 @@ public class NotificationServiceImpl implements NotificationService {
                             "UTF-8"
                     );
 
-            helper.setFrom(brevoFrom);
+            helper.setFrom(brevoFrom,brevoFromName);
             helper.setTo(recipientEmail.trim());
             helper.setSubject(subject);
             helper.setText(htmlMessage, true);
