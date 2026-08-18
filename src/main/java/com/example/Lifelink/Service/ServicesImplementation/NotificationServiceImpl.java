@@ -7,34 +7,39 @@ import com.example.Lifelink.Repository.NotificationLogRepository;
 import com.example.Lifelink.Service.NotificationService;
 import com.example.Lifelink.Type.EnumNotification;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Map;
+
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
-
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-    private final JavaMailSender mailSender;
     private final NotificationLogRepository notificationLogRepository;
+    private final RestClient restClient;
 
-    /*
-     * This must be the same email address configured in
-     * spring.mail.username
-     */
-    @Value("${spring.mail.username}")
-    private String mailUsername;
+    @Value("${resend.api-key}")
+    private String resendApiKey;
 
+    @Value("${resend.from}")
+    private String resendFrom;
+
+    public NotificationServiceImpl(
+            NotificationLogRepository notificationLogRepository,
+            RestClient.Builder restClientBuilder
+    ) {
+        this.notificationLogRepository = notificationLogRepository;
+
+        this.restClient = restClientBuilder
+                .baseUrl("https://api.resend.com")
+                .build();
+    }
 
     // =========================================================
     // MAIN NOTIFICATION METHOD
@@ -197,45 +202,12 @@ public class NotificationServiceImpl implements NotificationService {
             EmergencyAlert alert
     ) {
 
-        // -----------------------------------------------------
-        // BASIC VALIDATION
-        // -----------------------------------------------------
-
-        if (recipientEmail == null ||
-                recipientEmail.isBlank()) {
-
-            System.err.println(
-                    "Email skipped: recipient email is empty."
-            );
-
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            System.err.println("Email skipped: recipient email is empty.");
             return;
         }
 
-        if (mailUsername == null ||
-                mailUsername.isBlank()) {
-
-            System.err.println(
-                    "EMAIL CONFIGURATION ERROR: "
-                            + "spring.mail.username is empty."
-            );
-
-            return;
-        }
-
-
-        // -----------------------------------------------------
-        // SHORT DATABASE MESSAGE
-        //
-        // IMPORTANT:
-        // Do NOT save the complete HTML email here.
-        // That was causing:
-        //
-        // value too long for type character varying(5000)
-        // -----------------------------------------------------
-
-        String logMessage =
-                buildNotificationLogMessage(alert);
-
+        String logMessage = buildNotificationLogMessage(alert);
 
         NotificationLog log =
                 NotificationLog.builder()
@@ -246,38 +218,18 @@ public class NotificationServiceImpl implements NotificationService {
                                         "Unknown Recipient"
                                 )
                         )
-                        .recipientEmail(
-                                recipientEmail.trim()
-                        )
-                        .recipientType(
-                                recipientType
-                        )
-                        .notificationType(
-                                "EMAIL"
-                        )
-                        .status(
-                                EnumNotification.PENDING
-                        )
-                        .message(
-                                logMessage
-                        )
+                        .recipientEmail(recipientEmail.trim())
+                        .recipientType(recipientType)
+                        .notificationType("EMAIL")
+                        .status(EnumNotification.PENDING)
+                        .message(logMessage)
                         .build();
-
-
-        // -----------------------------------------------------
-        // SAVE PENDING LOG
-        // -----------------------------------------------------
 
         try {
 
             notificationLogRepository.save(log);
 
         } catch (Exception databaseException) {
-
-            /*
-             * Do not stop the actual email attempt merely because
-             * notification logging failed.
-             */
 
             System.err.println(
                     "WARNING: Could not save PENDING notification log."
@@ -287,76 +239,48 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
 
-        // -----------------------------------------------------
-        // CREATE EMAIL
-        // -----------------------------------------------------
+        // =====================================================
+        // SEND THROUGH RESEND
+        // =====================================================
 
         try {
 
-            MimeMessage mail =
-                    mailSender.createMimeMessage();
-
-
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(
-                            mail,
-                            false,
-                            StandardCharsets.UTF_8.name()
+            Map<String, Object> requestBody =
+                    Map.of(
+                            "from", resendFrom,
+                            "to", List.of(recipientEmail.trim()),
+                            "subject", subject,
+                            "html", htmlMessage
                     );
 
 
-            // -------------------------------------------------
-            // IMPORTANT:
-            // Explicit FROM address fixes:
-            //
-            // can't determine local email address
-            // -------------------------------------------------
-
-            helper.setFrom(
-                    mailUsername,
-                    "LifeLink Emergency System"
-            );
-
-
-            helper.setTo(
-                    recipientEmail.trim()
-            );
+            restClient.post()
+                    .uri("/emails")
+                    .header(
+                            "Authorization",
+                            "Bearer " + resendApiKey
+                    )
+                    .header(
+                            "Content-Type",
+                            "application/json"
+                    )
+                    .body(requestBody)
+                    .retrieve()
+                    .toBodilessEntity();
 
 
-            helper.setSubject(
-                    subject
-            );
+            // =================================================
+            // SUCCESS
+            // =================================================
 
-
-            // TRUE = HTML email
-            helper.setText(
-                    htmlMessage,
-                    true
-            );
-
-
-            // -------------------------------------------------
-            // SEND
-            // -------------------------------------------------
-
-            mailSender.send(mail);
-
-
-            // -------------------------------------------------
-            // UPDATE LOG
-            // -------------------------------------------------
-
-            log.setStatus(
-                    EnumNotification.SENT
-            );
-
+            log.setStatus(EnumNotification.SENT);
 
             System.out.println(
                     "================================================="
             );
 
             System.out.println(
-                    "LIFELINK EMAIL SENT SUCCESSFULLY"
+                    "LIFELINK EMAIL SENT SUCCESSFULLY VIA RESEND"
             );
 
             System.out.println(
@@ -382,28 +306,12 @@ public class NotificationServiceImpl implements NotificationService {
             );
 
 
-        } catch (MessagingException e) {
-
-            log.setStatus(
-                    EnumNotification.FAILED
-            );
-
-            System.err.println(
-                    "EMAIL FAILED TO: "
-                            + recipientEmail
-            );
-
-            e.printStackTrace();
-
-
         } catch (Exception e) {
 
-            log.setStatus(
-                    EnumNotification.FAILED
-            );
+            log.setStatus(EnumNotification.FAILED);
 
             System.err.println(
-                    "UNEXPECTED EMAIL ERROR TO: "
+                    "RESEND EMAIL FAILED TO: "
                             + recipientEmail
             );
 
@@ -411,9 +319,9 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
 
-        // -----------------------------------------------------
-        // UPDATE NOTIFICATION LOG
-        // -----------------------------------------------------
+        // =====================================================
+        // UPDATE LOG
+        // =====================================================
 
         try {
 
