@@ -7,38 +7,40 @@ import com.example.Lifelink.Repository.NotificationLogRepository;
 import com.example.Lifelink.Service.NotificationService;
 import com.example.Lifelink.Type.EnumNotification;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
-import java.util.List;
-import java.util.Map;
+
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.internet.MimeMessage;
 
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
+
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationLogRepository notificationLogRepository;
-    private final RestClient restClient;
+    private final JavaMailSender mailSender;
 
-    @Value("${resend.api-key}")
-    private String resendApiKey;
-
-    @Value("${resend.from}")
-    private String resendFrom;
+    @Value("${brevo.from}")
+    private String brevoFrom;
 
     public NotificationServiceImpl(
             NotificationLogRepository notificationLogRepository,
-            RestClient.Builder restClientBuilder
+            JavaMailSender mailSender
     ) {
         this.notificationLogRepository = notificationLogRepository;
-
-        this.restClient = restClientBuilder
-                .baseUrl("https://api.resend.com")
-                .build();
+        this.mailSender = mailSender;
     }
 
     // =========================================================
@@ -243,30 +245,27 @@ public class NotificationServiceImpl implements NotificationService {
         // SEND THROUGH RESEND
         // =====================================================
 
+        // =====================================================
+// SEND THROUGH BREVO SMTP
+// =====================================================
+
         try {
 
-            Map<String, Object> requestBody =
-                    Map.of(
-                            "from", resendFrom,
-                            "to", List.of(recipientEmail.trim()),
-                            "subject", subject,
-                            "html", htmlMessage
+            MimeMessage message = mailSender.createMimeMessage();
+
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(
+                            message,
+                            true,
+                            "UTF-8"
                     );
 
+            helper.setFrom(brevoFrom);
+            helper.setTo(recipientEmail.trim());
+            helper.setSubject(subject);
+            helper.setText(htmlMessage, true);
 
-            restClient.post()
-                    .uri("/emails")
-                    .header(
-                            "Authorization",
-                            "Bearer " + resendApiKey
-                    )
-                    .header(
-                            "Content-Type",
-                            "application/json"
-                    )
-                    .body(requestBody)
-                    .retrieve()
-                    .toBodilessEntity();
+            mailSender.send(message);
 
 
             // =================================================
@@ -280,7 +279,7 @@ public class NotificationServiceImpl implements NotificationService {
             );
 
             System.out.println(
-                    "LIFELINK EMAIL SENT SUCCESSFULLY VIA RESEND"
+                    "LIFELINK EMAIL SENT SUCCESSFULLY VIA BREVO"
             );
 
             System.out.println(
@@ -311,7 +310,7 @@ public class NotificationServiceImpl implements NotificationService {
             log.setStatus(EnumNotification.FAILED);
 
             System.err.println(
-                    "RESEND EMAIL FAILED TO: "
+                    "BREVO EMAIL FAILED TO: "
                             + recipientEmail
             );
 
