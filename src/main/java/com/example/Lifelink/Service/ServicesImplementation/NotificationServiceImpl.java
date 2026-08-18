@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
@@ -40,6 +41,7 @@ public class NotificationServiceImpl implements NotificationService {
     // =========================================================
 
     @Override
+    @Async("notificationExecutor")
     public void sendEmergencyNotifications(EmergencyAlert alert) {
 
         if (alert == null) {
