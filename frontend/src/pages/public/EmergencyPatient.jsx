@@ -594,32 +594,32 @@ function EmergencyPatient() {
 
                       <div className="contact-avatar">
 
-                        {contact?.name
-                          ?.charAt(0)
-                          ?.toUpperCase() || "C"}
+  {contact?.contactName
+    ?.charAt(0)
+    ?.toUpperCase() || "C"}
 
-                      </div>
+</div>
 
 
-                      <div className="contact-details">
+<div className="contact-details">
 
-                        <strong>
-                          {contact?.name ||
-                            "Emergency Contact"}
-                        </strong>
+  <strong>
+    {contact?.contactName ||
+      "Emergency Contact"}
+  </strong>
 
-                        {contact?.relationship && (
-                          <span>
-                            {contact.relationship}
-                          </span>
-                        )}
+  {contact?.relationship && (
+    <span>
+      {contact.relationship}
+    </span>
+  )}
 
-                        <small>
-                          {phoneNumber ||
-                            "Phone number unavailable"}
-                        </small>
+  <small>
+    {phoneNumber ||
+      "Phone number unavailable"}
+  </small>
 
-                      </div>
+</div>
 
 
                       {phoneNumber && (
