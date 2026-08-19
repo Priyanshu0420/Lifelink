@@ -4,46 +4,26 @@ import com.example.Lifelink.Entity.EmergencyAlert;
 import com.example.Lifelink.Entity.EmergencyContacts;
 import com.example.Lifelink.Entity.NotificationLog;
 import com.example.Lifelink.Repository.NotificationLogRepository;
+import com.example.Lifelink.Service.BrevoEmailService;
 import com.example.Lifelink.Service.NotificationService;
 import com.example.Lifelink.Type.EnumNotification;
-
-import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import jakarta.mail.internet.MimeMessage;
-
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
-
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationLogRepository notificationLogRepository;
-    private final JavaMailSender mailSender;
-
-    @Value("${brevo.from}")
-    private String brevoFrom;
-
-    @Value("${brevo.from-name}")
-    private String brevoFromName;
+    private final BrevoEmailService brevoEmailService;
 
     public NotificationServiceImpl(
             NotificationLogRepository notificationLogRepository,
-            JavaMailSender mailSender
+            BrevoEmailService brevoEmailService
     ) {
         this.notificationLogRepository = notificationLogRepository;
-        this.mailSender = mailSender;
+        this.brevoEmailService = brevoEmailService;
     }
 
     // =========================================================
@@ -55,12 +35,16 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendEmergencyNotifications(EmergencyAlert alert) {
 
         if (alert == null) {
-            System.err.println("Cannot send notification: alert is null.");
+            System.err.println(
+                    "Cannot send notification: alert is null."
+            );
             return;
         }
 
         if (alert.getPatient() == null) {
-            System.err.println("Cannot send notification: patient is null.");
+            System.err.println(
+                    "Cannot send notification: patient is null."
+            );
             return;
         }
 
@@ -87,7 +71,10 @@ public class NotificationServiceImpl implements NotificationService {
                 if (contact.getEmail() != null &&
                         !contact.getEmail().isBlank()) {
 
-                    sendFamilyNotification(alert, contact);
+                    sendFamilyNotification(
+                            alert,
+                            contact
+                    );
                 }
             }
         }
@@ -195,7 +182,7 @@ public class NotificationServiceImpl implements NotificationService {
 
 
     // =========================================================
-    // SEND EMAIL
+    // SEND EMAIL THROUGH BREVO API
     // =========================================================
 
     private void sendEmail(
@@ -207,12 +194,27 @@ public class NotificationServiceImpl implements NotificationService {
             EmergencyAlert alert
     ) {
 
-        if (recipientEmail == null || recipientEmail.isBlank()) {
-            System.err.println("Email skipped: recipient email is empty.");
+        if (recipientEmail == null ||
+                recipientEmail.isBlank()) {
+
+            System.err.println(
+                    "Email skipped: recipient email is empty."
+            );
+
             return;
         }
 
-        String logMessage = buildNotificationLogMessage(alert);
+
+        String trimmedEmail =
+                recipientEmail.trim();
+
+
+        // =====================================================
+        // CREATE PENDING NOTIFICATION LOG
+        // =====================================================
+
+        String logMessage =
+                buildNotificationLogMessage(alert);
 
         NotificationLog log =
                 NotificationLog.builder()
@@ -223,12 +225,17 @@ public class NotificationServiceImpl implements NotificationService {
                                         "Unknown Recipient"
                                 )
                         )
-                        .recipientEmail(recipientEmail.trim())
+                        .recipientEmail(trimmedEmail)
                         .recipientType(recipientType)
                         .notificationType("EMAIL")
                         .status(EnumNotification.PENDING)
                         .message(logMessage)
                         .build();
+
+
+        // =====================================================
+        // SAVE PENDING LOG
+        // =====================================================
 
         try {
 
@@ -245,76 +252,127 @@ public class NotificationServiceImpl implements NotificationService {
 
 
         // =====================================================
-        // SEND THROUGH RESEND
+        // SEND THROUGH BREVO HTTP API
         // =====================================================
-
-        // =====================================================
-// SEND THROUGH BREVO SMTP
-// =====================================================
 
         try {
 
-            MimeMessage message = mailSender.createMimeMessage();
-
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(
-                            message,
-                            true,
-                            "UTF-8"
+            boolean emailSent =
+                    brevoEmailService.sendEmail(
+                            trimmedEmail,
+                            recipientName,
+                            subject,
+                            htmlMessage
                     );
-
-            helper.setFrom(brevoFrom,brevoFromName);
-            helper.setTo(recipientEmail.trim());
-            helper.setSubject(subject);
-            helper.setText(htmlMessage, true);
-
-            mailSender.send(message);
 
 
             // =================================================
             // SUCCESS
             // =================================================
 
-            log.setStatus(EnumNotification.SENT);
+            if (emailSent) {
 
-            System.out.println(
-                    "================================================="
-            );
+                log.setStatus(
+                        EnumNotification.SENT
+                );
 
-            System.out.println(
-                    "LIFELINK EMAIL SENT SUCCESSFULLY VIA BREVO"
-            );
+                System.out.println(
+                        "================================================="
+                );
 
-            System.out.println(
-                    "To       : " + recipientEmail
-            );
+                System.out.println(
+                        "LIFELINK EMAIL SENT SUCCESSFULLY VIA BREVO API"
+                );
 
-            System.out.println(
-                    "Type     : " + recipientType
-            );
+                System.out.println(
+                        "To       : " + trimmedEmail
+                );
 
-            System.out.println(
-                    "Patient  : "
-                            + alert.getPatient().getPatientName()
-            );
+                System.out.println(
+                        "Type     : " + recipientType
+                );
 
-            System.out.println(
-                    "Location : "
-                            + getLocationText(alert)
-            );
+                System.out.println(
+                        "Patient  : "
+                                + alert.getPatient().getPatientName()
+                );
 
-            System.out.println(
-                    "================================================="
-            );
+                System.out.println(
+                        "Location : "
+                                + getLocationText(alert)
+                );
+
+                System.out.println(
+                        "================================================="
+                );
+
+            }
+
+            // =================================================
+            // FAILURE
+            // =================================================
+
+            else {
+
+                log.setStatus(
+                        EnumNotification.FAILED
+                );
+
+                System.err.println(
+                        "================================================="
+                );
+
+                System.err.println(
+                        "BREVO API EMAIL FAILED"
+                );
+
+                System.err.println(
+                        "To       : " + trimmedEmail
+                );
+
+                System.err.println(
+                        "Type     : " + recipientType
+                );
+
+                System.err.println(
+                        "Patient  : "
+                                + alert.getPatient().getPatientName()
+                );
+
+                System.err.println(
+                        "================================================="
+                );
+            }
 
 
         } catch (Exception e) {
 
-            log.setStatus(EnumNotification.FAILED);
+            log.setStatus(
+                    EnumNotification.FAILED
+            );
 
             System.err.println(
-                    "BREVO EMAIL FAILED TO: "
-                            + recipientEmail
+                    "================================================="
+            );
+
+            System.err.println(
+                    "BREVO API EMAIL ERROR"
+            );
+
+            System.err.println(
+                    "To       : " + trimmedEmail
+            );
+
+            System.err.println(
+                    "Type     : " + recipientType
+            );
+
+            System.err.println(
+                    "Error    : " + e.getMessage()
+            );
+
+            System.err.println(
+                    "================================================="
             );
 
             e.printStackTrace();
@@ -322,7 +380,7 @@ public class NotificationServiceImpl implements NotificationService {
 
 
         // =====================================================
-        // UPDATE LOG
+        // UPDATE NOTIFICATION LOG
         // =====================================================
 
         try {
