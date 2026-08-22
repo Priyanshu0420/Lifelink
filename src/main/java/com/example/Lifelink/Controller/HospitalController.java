@@ -23,10 +23,7 @@ public class HospitalController {
     private final PatientService patientService;
     private final HospitalService hospitalService;
 
-
-    // =========================================================
     // HOSPITAL PROFILE
-    // =========================================================
 
     @GetMapping("/profile")
     public ResponseEntity<HospitalRespDTO> myProfile() {
@@ -76,9 +73,7 @@ public class HospitalController {
     }
 
 
-    // =========================================================
     // PATIENT MANAGEMENT
-    // =========================================================
 
     @GetMapping("/hospital/patient/search/")
     public ResponseEntity<List<PatientRespDTO>> searchPatient(
@@ -136,9 +131,7 @@ public class HospitalController {
     }
 
 
-    // =========================================================
     // EMERGENCY DASHBOARD
-    // =========================================================
 
     // View today's emergencies
     @GetMapping("/emergencies/today")
