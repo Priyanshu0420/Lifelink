@@ -50,17 +50,9 @@ public class Hospital {
 
     private String licenseNumber;
 
-    // ==========================
-    // Patients
-    // ==========================
-
     @ManyToMany(mappedBy = "hospitals", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Patient> patients = new ArrayList<>();
-
-    // ==========================
-    // Emergency Alerts
-    // ==========================
 
     @OneToMany(
             mappedBy = "hospital",
@@ -70,10 +62,6 @@ public class Hospital {
     )
     @Builder.Default
     private List<EmergencyAlert> emergencyAlerts = new ArrayList<>();
-
-    // ==========================
-    // User
-    // ==========================
 
     @MapsId
     @OneToOne
