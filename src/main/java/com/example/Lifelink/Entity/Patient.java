@@ -23,10 +23,6 @@ public class Patient {
     @Id
     private Long patientId;
 
-    // ==========================
-    // User (One-to-One)
-    // ==========================
-
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "user_id",
@@ -35,10 +31,6 @@ public class Patient {
     )
     @MapsId
     private User user;
-
-    // ==========================
-    // Personal Information
-    // ==========================
 
     private String patientName;
 
@@ -68,11 +60,6 @@ public class Patient {
 
     private Double weight;
 
-    // ==========================
-    // Address
-    // ==========================
-
-
     private String address;
 
     private String city;
@@ -85,10 +72,6 @@ public class Patient {
 
     private String pinCode;
 
-    // ==========================
-    // Emergency Contacts
-    // ==========================
-
     @OneToMany(
             mappedBy = "patient",
             cascade = CascadeType.ALL,
@@ -98,10 +81,6 @@ public class Patient {
     @Builder.Default
     private List<EmergencyContacts> emergencyContacts = new ArrayList<>();
 
-    // ==========================
-    // Insurance
-    // ==========================
-
     @OneToOne(
             mappedBy = "patient",
             cascade = CascadeType.ALL,
@@ -109,10 +88,6 @@ public class Patient {
             fetch = FetchType.LAZY
     )
     private Insurance insurance;
-
-    // ==========================
-    // QR Code
-    // ==========================
 
     @OneToOne(
             mappedBy = "patient",
@@ -122,10 +97,6 @@ public class Patient {
     )
     private QRCode qrCode;
 
-    // ==========================
-    // Emergency Alerts
-    // ==========================
-
     @OneToMany(
             mappedBy = "patient",
             cascade = CascadeType.ALL,
@@ -134,10 +105,6 @@ public class Patient {
     )
     @Builder.Default
     private List<EmergencyAlert> emergencyAlerts = new ArrayList<>();
-
-    // ==========================
-    // Hospitals
-    // ==========================
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
