@@ -33,7 +33,7 @@ public class JwtFilter extends OncePerRequestFilter {
         final String authorizationHeader =
                 request.getHeader("Authorization");
 
-        // No JWT → continue normally
+       
         if (authorizationHeader == null ||
                 !authorizationHeader.startsWith("Bearer ")) {
 
