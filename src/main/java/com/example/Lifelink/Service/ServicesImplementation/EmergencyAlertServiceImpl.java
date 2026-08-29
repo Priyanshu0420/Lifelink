@@ -34,9 +34,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
             EmergencySOSReqDTO request
     ) {
 
-        // ---------------------------------------------------------
-        // 1. Find patient
-        // ---------------------------------------------------------
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -44,9 +41,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
                         )
                 );
 
-        // ---------------------------------------------------------
-        // 2. Validate patient location
-        // ---------------------------------------------------------
         if (request.getLatitude() == null ||
                 request.getLongitude() == null) {
 
@@ -55,9 +49,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
             );
         }
 
-        // ---------------------------------------------------------
-        // 3. Find all approved hospitals
-        // ---------------------------------------------------------
         List<Hospital> hospitals =
                 hospitalRepository.findByStatus(
                         EnumHospitalStatus.Approved
@@ -69,9 +60,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
             );
         }
 
-        // ---------------------------------------------------------
-        // 4. Find nearest approved hospital
-        // ---------------------------------------------------------
         Hospital nearestHospital =
                 findNearestHospital(
                         request.getLatitude(),
@@ -79,9 +67,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
                         hospitals
                 );
 
-        // ---------------------------------------------------------
-        // 5. Create Emergency Alert
-        // ---------------------------------------------------------
         EmergencyAlert alert = EmergencyAlert.builder()
                 .patient(patient)
                 .hospital(nearestHospital)
@@ -91,24 +76,13 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
                 .notes("SOS triggered through public QR scan")
                 .build();
 
-        // ---------------------------------------------------------
-        // 6. Save Emergency Alert
-        // ---------------------------------------------------------
         EmergencyAlert savedAlert =
                 emergencyAlertRepository.save(alert);
 
-        // ---------------------------------------------------------
-        // 7. Send emergency notifications
-        // ---------------------------------------------------------
         notificationService.sendEmergencyNotifications(savedAlert);
 
-        // ---------------------------------------------------------
-        // 8. Return response
-        // ---------------------------------------------------------
         return EmergencyAlertRespDTO.builder()
 
-                // IMPORTANT:
-                // Return the generated database ID
                 .alertId(savedAlert.getAlertId())
 
                 .patientName(patient.getPatientName())
