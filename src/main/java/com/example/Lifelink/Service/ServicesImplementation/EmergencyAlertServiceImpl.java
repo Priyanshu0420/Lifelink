@@ -102,9 +102,7 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
                 .build();
     }
 
-    // ============================================================
     // FIND NEAREST HOSPITAL
-    // ============================================================
 
     private Hospital findNearestHospital(
             Double latitude,
@@ -117,8 +115,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
         double shortestDistance = Double.MAX_VALUE;
 
         for (Hospital hospital : hospitals) {
-
-            // Ignore hospitals without valid coordinates
             if (hospital.getLatitude() == null ||
                     hospital.getLongitude() == null) {
                 continue;
@@ -148,10 +144,6 @@ public class EmergencyAlertServiceImpl implements EmergencyAlertService {
 
         return nearestHospital;
     }
-
-    // ============================================================
-    // HAVERSINE DISTANCE CALCULATION
-    // ============================================================
 
     private double calculateDistance(
             double lat1,
