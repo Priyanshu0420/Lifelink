@@ -44,10 +44,6 @@ public class QRCodeServiceImpl implements QRCodeService {
                         )
                 );
 
-        // =====================================================
-        // CHECK IF QR CODE ALREADY EXISTS
-        // =====================================================
-
         java.util.Optional<QRCode> existingQRCode =
                 qrCodeRepository.findByPatient_PatientId(patientId);
 
