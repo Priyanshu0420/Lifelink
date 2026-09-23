@@ -93,11 +93,6 @@ public class QRCodeServiceImpl implements QRCodeService {
             }
         }
 
-
-        // =====================================================
-        // NO QR EXISTS → CREATE NEW ONE
-        // =====================================================
-
         String qrValue =
                 publicUrl + "/public/patient/" + patientId;
 
@@ -150,10 +145,6 @@ public class QRCodeServiceImpl implements QRCodeService {
 
             Path path = Paths.get(qrCode.getImagePath());
 
-            // =================================================
-            // IMAGE DOES NOT EXIST
-            // =================================================
-
             if (!Files.exists(path)) {
 
                 String qrValue =
@@ -176,11 +167,6 @@ public class QRCodeServiceImpl implements QRCodeService {
 
                 path = Paths.get(filePath);
             }
-
-
-            // =================================================
-            // READ IMAGE
-            // =================================================
 
             if (!Files.exists(path)) {
 
