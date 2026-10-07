@@ -50,17 +50,11 @@ public class QRCodeServiceImpl implements QRCodeService {
         if (existingQRCode.isPresent()) {
 
             QRCode qrCode = existingQRCode.get();
-
-            // If database record exists and image file also exists,
-            // simply return the existing QR.
             if (qrCode.getImagePath() != null
                     && Files.exists(Paths.get(qrCode.getImagePath()))) {
 
                 return mapToDTO(qrCode);
             }
-
-            // If database record exists but image file is missing,
-            // regenerate the image using the existing database record.
             try {
 
                 String qrValue =
