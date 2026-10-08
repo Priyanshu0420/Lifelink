@@ -288,9 +288,9 @@ public class HospitalServiceImpl implements HospitalService {
         EnumAlert currentStatus = alert.getStatus();
         EnumAlert newStatus = request.getStatus();
 
-        // =====================================================
+       
         // ACCEPT EMERGENCY
-        // =====================================================
+     
 
         if (currentStatus == EnumAlert.PENDING &&
                 newStatus == EnumAlert.ACCEPTED) {
@@ -310,9 +310,9 @@ public class HospitalServiceImpl implements HospitalService {
 
         }
 
-        // =====================================================
-        // RESOLVE EMERGENCY
-        // =====================================================
+    
+        // RESOLVED EMERGENCY
+       
 
         else if (currentStatus == EnumAlert.ACCEPTED &&
                 newStatus == EnumAlert.RESOLVED) {
@@ -320,10 +320,6 @@ public class HospitalServiceImpl implements HospitalService {
             alert.setStatus(EnumAlert.RESOLVED);
 
         }
-
-        // =====================================================
-        // INVALID TRANSITION
-        // =====================================================
 
         else {
 
