@@ -26,9 +26,7 @@ public class NotificationServiceImpl implements NotificationService {
         this.brevoEmailService = brevoEmailService;
     }
 
-    // =========================================================
     // MAIN NOTIFICATION METHOD
-    // =========================================================
 
     @Override
     @Async("notificationExecutor")
@@ -48,16 +46,7 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        // -----------------------------------------------------
-        // HOSPITAL
-        // -----------------------------------------------------
-
         sendHospitalNotification(alert);
-
-
-        // -----------------------------------------------------
-        // FAMILY / EMERGENCY CONTACTS
-        // -----------------------------------------------------
 
         if (alert.getPatient().getEmergencyContacts() != null) {
 
@@ -81,9 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    // =========================================================
     // HOSPITAL NOTIFICATION
-    // =========================================================
 
     private void sendHospitalNotification(
             EmergencyAlert alert
@@ -137,9 +124,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    // =========================================================
     // FAMILY / EMERGENCY CONTACT NOTIFICATION
-    // =========================================================
 
     private void sendFamilyNotification(
             EmergencyAlert alert,
@@ -181,10 +166,6 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    // =========================================================
-    // SEND EMAIL THROUGH BREVO API
-    // =========================================================
-
     private void sendEmail(
             String recipientEmail,
             String recipientName,
@@ -207,11 +188,9 @@ public class NotificationServiceImpl implements NotificationService {
 
         String trimmedEmail =
                 recipientEmail.trim();
+        
 
-
-        // =====================================================
         // CREATE PENDING NOTIFICATION LOG
-        // =====================================================
 
         String logMessage =
                 buildNotificationLogMessage(alert);
@@ -232,11 +211,6 @@ public class NotificationServiceImpl implements NotificationService {
                         .message(logMessage)
                         .build();
 
-
-        // =====================================================
-        // SAVE PENDING LOG
-        // =====================================================
-
         try {
 
             notificationLogRepository.save(log);
@@ -251,10 +225,6 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
 
-        // =====================================================
-        // SEND THROUGH BREVO HTTP API
-        // =====================================================
-
         try {
 
             boolean emailSent =
@@ -264,11 +234,6 @@ public class NotificationServiceImpl implements NotificationService {
                             subject,
                             htmlMessage
                     );
-
-
-            // =================================================
-            // SUCCESS
-            // =================================================
 
             if (emailSent) {
 
@@ -307,10 +272,6 @@ public class NotificationServiceImpl implements NotificationService {
                 );
 
             }
-
-            // =================================================
-            // FAILURE
-            // =================================================
 
             else {
 
@@ -378,11 +339,6 @@ public class NotificationServiceImpl implements NotificationService {
             e.printStackTrace();
         }
 
-
-        // =====================================================
-        // UPDATE NOTIFICATION LOG
-        // =====================================================
-
         try {
 
             notificationLogRepository.save(log);
@@ -396,11 +352,6 @@ public class NotificationServiceImpl implements NotificationService {
             databaseException.printStackTrace();
         }
     }
-
-
-    // =========================================================
-    // SHORT NOTIFICATION LOG MESSAGE
-    // =========================================================
 
     private String buildNotificationLogMessage(
             EmergencyAlert alert
@@ -430,10 +381,7 @@ public class NotificationServiceImpl implements NotificationService {
                         + location;
     }
 
-
-    // =========================================================
     // LOCATION TEXT
-    // =========================================================
 
     private String getLocationText(
             EmergencyAlert alert
@@ -458,9 +406,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    // =========================================================
     // GOOGLE MAPS URL
-    // =========================================================
 
     private String buildGoogleMapsUrl(
             EmergencyAlert alert
@@ -482,9 +428,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    // =========================================================
-    // BUILD HTML EMAIL
-    // =========================================================
+    // HTML EMAIL
 
     private String buildEmailMessage(
             EmergencyAlert alert
@@ -548,10 +492,9 @@ public class NotificationServiceImpl implements NotificationService {
 
         String locationSection;
 
-
-        // =====================================================
+        
         // LOCATION AVAILABLE
-        // =====================================================
+     
 
         if (alert.getLatitude() != null &&
                 alert.getLongitude() != null) {
@@ -656,10 +599,6 @@ public class NotificationServiceImpl implements NotificationService {
 
         } else {
 
-            // =================================================
-            // LOCATION NOT AVAILABLE
-            // =================================================
-
             locationSection = """
                     <div style="
                         background:#fef2f2;
@@ -691,11 +630,6 @@ public class NotificationServiceImpl implements NotificationService {
                     </div>
                     """;
         }
-
-
-        // =====================================================
-        // COMPLETE EMAIL
-        // =====================================================
 
         return """
                 <!DOCTYPE html>
@@ -1167,9 +1101,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    // =========================================================
     // EMERGENCY CONTACT HTML
-    // =========================================================
 
     private String getEmergencyContactInfoHtml(
             com.example.Lifelink.Entity.Patient patient
@@ -1316,11 +1248,6 @@ public class NotificationServiceImpl implements NotificationService {
         return contacts.toString();
     }
 
-
-    // =========================================================
-    // SAFE TEXT
-    // =========================================================
-
     private String safeText(
             String value,
             String fallback
@@ -1335,10 +1262,6 @@ public class NotificationServiceImpl implements NotificationService {
         return value;
     }
 
-
-    // =========================================================
-    // HTML ESCAPING
-    // =========================================================
 
     private String escapeHtml(
             String value
